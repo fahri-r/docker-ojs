@@ -9,13 +9,13 @@ services:
       MYSQL_DATABASE: "${OJS_DB_NAME:-ojs}"
       MYSQL_USER: "${OJS_DB_USER:-ojs}"
       MYSQL_PASSWORD: "${OJS_DB_PASSWORD:-ojsPwd}"
-      COOLIFY_DEPLOYMENT_ID: "${COOLIFY_DEPLOYMENT_ID}"
-      COOLIFY_APP_ID: "${COOLIFY_APP_ID}"
+      COOLIFY_DEPLOYMENT_ID: "${COOLIFY_DEPLOYMENT_ID:-none}"
+      COOLIFY_APP_ID: "${COOLIFY_APP_ID:-ojs-app}"
     volumes:
-      - "${HOST_DIRECTORY}/volumes/db:/var/lib/mysql"
-      - "${HOST_DIRECTORY}/volumes/dump:/docker-entrypoint-initdb.d"
+      - "${HOST_DIRECTORY:-./volumes}/db:/var/lib/mysql"
+      - "${HOST_DIRECTORY:-./volumes}/dump:/docker-entrypoint-initdb.d"
     networks:
-      - coolify-network
+      - "${COOLIFY_NETWORK_NAME:-coolify-network}"
       - inside
     restart: unless-stopped
     healthcheck:
@@ -35,11 +35,11 @@ services:
       - "${HTTP_PORT:-8081}:80"
     volumes:
       - "/etc/localtime:/etc/localtime"
-      - "${HOST_DIRECTORY}/volumes/private:/var/www/files"
-      - "${HOST_DIRECTORY}/volumes/public:/var/www/html/public"
-      - "${HOST_DIRECTORY}/volumes/config/ojs.config.inc.php:/var/www/html/config.inc.php"
+      - "${HOST_DIRECTORY:-./volumes}/private:/var/www/files"
+      - "${HOST_DIRECTORY:-./volumes}/public:/var/www/html/public"
+      - "${HOST_DIRECTORY:-./volumes}/config/ojs.config.inc.php:/var/www/html/config.inc.php"
     networks:
-      - coolify-network
+      - "${COOLIFY_NETWORK_NAME:-coolify-network}"
       - inside
     depends_on:
       db:
@@ -49,16 +49,16 @@ services:
       coolify.service: application
       coolify.managed: "true"
       traefik.enable: "true"
-      traefik.http.routers.${COOLIFY_APP_ID}-http.entrypoints: "web"
-      traefik.http.routers.${COOLIFY_APP_ID}-http.rule: "Host(`${COOLIFY_FQDN}`)"
-      traefik.http.routers.${COOLIFY_APP_ID}-https.entrypoints: "websecure"
-      traefik.http.routers.${COOLIFY_APP_ID}-https.rule: "Host(`${COOLIFY_FQDN}`)"
-      traefik.http.routers.${COOLIFY_APP_ID}-https.tls: "true"
-      traefik.http.routers.${COOLIFY_APP_ID}-https.tls.certresolver: "coolify"
+      traefik.http.routers.${COOLIFY_APP_ID:-ojs}-http.entrypoints: "web"
+      traefik.http.routers.${COOLIFY_APP_ID:-ojs}-http.rule: "Host(`${COOLIFY_FQDN:-ojs.localhost}`)"
+      traefik.http.routers.${COOLIFY_APP_ID:-ojs}-https.entrypoints: "websecure"
+      traefik.http.routers.${COOLIFY_APP_ID:-ojs}-https.rule: "Host(`${COOLIFY_FQDN:-ojs.localhost}`)"
+      traefik.http.routers.${COOLIFY_APP_ID:-ojs}-https.tls: "true"
+      traefik.http.routers.${COOLIFY_APP_ID:-ojs}-https.tls.certresolver: "coolify"
 
 networks:
   inside:
     driver: bridge
   coolify-network:
     external: true
-    name: ${COOLIFY_NETWORK_NAME}
+    name: "${COOLIFY_NETWORK_NAME:-coolify-network}"
