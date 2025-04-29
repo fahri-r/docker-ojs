@@ -1,47 +1,64 @@
-networks:
-  inside:
-    external: false
+version: '3.8'
 
 services:
   db:
     image: mariadb:11.4
-#    env_file:
-#      - .env
     container_name: "ojs_db_${COMPOSE_PROJECT_NAME:-demo}"
     environment:
       MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-ojsPwd}"
       MYSQL_DATABASE: "${OJS_DB_NAME:-ojs}"
       MYSQL_USER: "${OJS_DB_USER:-ojs}"
       MYSQL_PASSWORD: "${OJS_DB_PASSWORD:-ojsPwd}"
+      COOLIFY_DEPLOYMENT_ID: "${COOLIFY_DEPLOYMENT_ID}"
+      COOLIFY_APP_ID: "${COOLIFY_APP_ID}"
     volumes:
-      - ./volumes/db:/var/lib/mysql
-      - ./volumes/dump:/docker-entrypoint-initdb.d
-#      - ./volumes/logs/db:/var/log/mysql
-#      - ./volumes/config/db.charset.conf:/etc/mysql/conf.d/charset.cnf
+      - "${HOST_DIRECTORY}/volumes/db:/var/lib/mysql"
+      - "${HOST_DIRECTORY}/volumes/dump:/docker-entrypoint-initdb.d"
     networks:
+      - coolify-network
       - inside
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    labels:
+      coolify.service: database
+      coolify.managed: "true"
 
   ojs:
     image: "pkpofficial/${OJS_IMAGE:-ojs}:${OJS_VERSION:-latest}"
-#    env_file:
-#      - .env
     container_name: "ojs_app_${COMPOSE_PROJECT_NAME:-demo}"
     hostname: "${COMPOSE_PROJECT_NAME:-demo}"
     ports:
       - "${HTTP_PORT:-8081}:80"
     volumes:
-      - /etc/localtime:/etc/localtime
-      - ./volumes/private:/var/www/files
-      - ./volumes/public:/var/www/html/public
-#      - ./volumes/logs/app:/var/log/apache2
-#      # WARNING: You can only enable file-volumes if file exists in the container.
-      - ./volumes/config/ojs.config.inc.php:/var/www/html/config.inc.php
-#      - ./volumes/config/apache.htaccess:/var/www/html/.htaccess
-#      - ./volumes/php.custom.ini:/usr/local/etc/php/conf.d/custom.ini
-
+      - "/etc/localtime:/etc/localtime"
+      - "${HOST_DIRECTORY}/volumes/private:/var/www/files"
+      - "${HOST_DIRECTORY}/volumes/public:/var/www/html/public"
+      - "${HOST_DIRECTORY}/volumes/config/ojs.config.inc.php:/var/www/html/config.inc.php"
     networks:
+      - coolify-network
       - inside
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: unless-stopped
+    labels:
+      coolify.service: application
+      coolify.managed: "true"
+      traefik.enable: "true"
+      traefik.http.routers.${COOLIFY_APP_ID}-http.entrypoints: "web"
+      traefik.http.routers.${COOLIFY_APP_ID}-http.rule: "Host(`${COOLIFY_FQDN}`)"
+      traefik.http.routers.${COOLIFY_APP_ID}-https.entrypoints: "websecure"
+      traefik.http.routers.${COOLIFY_APP_ID}-https.rule: "Host(`${COOLIFY_FQDN}`)"
+      traefik.http.routers.${COOLIFY_APP_ID}-https.tls: "true"
+      traefik.http.routers.${COOLIFY_APP_ID}-https.tls.certresolver: "coolify"
+
+networks:
+  inside:
+    driver: bridge
+  coolify-network:
+    external: true
+    name: ${COOLIFY_NETWORK_NAME}
