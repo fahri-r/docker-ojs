@@ -15,7 +15,7 @@ services:
       - "${HOST_DIRECTORY:-./volumes}/db:/var/lib/mysql"
       - "${HOST_DIRECTORY:-./volumes}/dump:/docker-entrypoint-initdb.d"
     networks:
-      - "${COOLIFY_NETWORK_NAME:-coolify-network}"
+      - "${HOST_DIRECTORY}"
       - inside
     restart: unless-stopped
     healthcheck:
@@ -39,7 +39,7 @@ services:
       - "${HOST_DIRECTORY:-./volumes}/public:/var/www/html/public"
       - "${HOST_DIRECTORY:-./volumes}/config/ojs.config.inc.php:/var/www/html/config.inc.php"
     networks:
-      - "${COOLIFY_NETWORK_NAME:-coolify-network}"
+      - "${HOST_DIRECTORY}"
       - inside
     depends_on:
       db:
@@ -59,6 +59,3 @@ services:
 networks:
   inside:
     driver: bridge
-  coolify-network:
-    external: true
-    name: "${COOLIFY_NETWORK_NAME:-coolify-network}"
