@@ -15,7 +15,7 @@ services:
       - "${HOST_DIRECTORY:-./volumes}/db:/var/lib/mysql"
       - "${HOST_DIRECTORY:-./volumes}/dump:/docker-entrypoint-initdb.d"
     networks:
-      - "${HOST_DIRECTORY}"
+      - i0ks04oks8csg48o0k80o80g
       - inside
     restart: unless-stopped
     healthcheck:
@@ -39,7 +39,7 @@ services:
       - "${HOST_DIRECTORY:-./volumes}/public:/var/www/html/public"
       - "${HOST_DIRECTORY:-./volumes}/config/ojs.config.inc.php:/var/www/html/config.inc.php"
     networks:
-      - "${HOST_DIRECTORY}"
+      - i0ks04oks8csg48o0k80o80g
       - inside
     depends_on:
       db:
